@@ -4,8 +4,16 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 
-int main(int argc, char** argv) {
+/**
+ * Mostrar 3 imágenes tal como muestra la figura 2, cada una con una componente RGB
+ * @param argc
+ * @param argv
+ * @return 
+ */
 
+int main(int argc, char** argv) {
+    
+    //Se pasa una imagen como parametro. argc = 2 (nombre programa + imagen)
     if (argc != 2) {
         printf("Usage: %s image_file_name\n", argv[0]);
         return EXIT_FAILURE;
@@ -14,7 +22,8 @@ int main(int argc, char** argv) {
     //CV_LOAD_IMAGE_COLOR = 1 forces the resultant IplImage to be colour.
     //CV_LOAD_IMAGE_GRAYSCALE = 0 forces a greyscale IplImage.
     //CV_LOAD_IMAGE_UNCHANGED = -1
-    IplImage* Img1 = cvLoadImage(argv[1], CV_LOAD_IMAGE_COLOR);
+    //Carga la imagen desde memoria 
+    IplImage* Img1 = cvLoadImage(argv[1], CV_LOAD_IMAGE_UNCHANGED);
     
     // Always check if the program can find a file
     if (!Img1) {
@@ -22,83 +31,84 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    //Crea una imagen con las caracteristicas de la imagen de entrada
-    IplImage *ImgMod = cvCloneImage(Img1);
+    //Creamos 3 imágenes, una para cada componente de color
+    IplImage* ImgBLUE = cvCreateImage(cvSize(Img1->width, Img1->height),Img1->depth,Img1->nChannels);
+    IplImage* ImgGREEN = cvCreateImage(cvSize(Img1->width, Img1->height),Img1->depth,Img1->nChannels);
+    IplImage* ImgRED = cvCreateImage(cvSize(Img1->width, Img1->height),Img1->depth,Img1->nChannels);
     
-    if (!ImgMod) {
+    if (!ImgBLUE || !ImgGREEN || !ImgRED) {
         printf("Error: Creando nueva imagen\n");
         return EXIT_FAILURE;
     }
     
-    //Creamos el bucle que recorre la imagen
+    //Creamos un bucle for que recorra la imagen original
     unsigned int row, col;
-    unsigned char *pImg;
-    unsigned char *pImgMod;
-    unsigned int step;
+    unsigned char *pImg1;
+    unsigned char *pImgBLUE;
+    unsigned char *pImgGREEN;
+    unsigned char *pImgRED;
     
-    //Para cada fila recorre las columnas de cada imagen
-    //La variable step cuenta los ciclos que se hacen para decrementar los valores
-    //Se establece en 256 porque es el tamaño que tiene cada componente de la imagen
-    for(step=0; step<256; step++){ 
+    for(row = 0; row < Img1->height; row++){
+        //Casteamos para que tenga un valor de 256 bits y alineamos la imagen al principio de cada fila con widthStep
+        pImg1 = (unsigned char*) (Img1->imageData + (row*Img1->widthStep));
+        pImgBLUE = (unsigned char*) (ImgBLUE->imageData + (row*ImgBLUE->widthStep));
+        pImgGREEN = (unsigned char*) (ImgGREEN->imageData + (row*ImgGREEN->widthStep));
+        pImgRED = (unsigned char*) (ImgRED->imageData + (row*ImgRED->widthStep));
         
-        /*for(row=0; row<Img1->height; row++){
-            //Creamos el puntero de la nueva imagen para que se cambie cada dato a negro
-            unsigned char *pImgMod = (unsigned char*) (ImgMod->imageData + (row*ImgMod->widthStep));
+        for(col = 0; col < Img1->width; col++){
+            //Componente BLUE
+            *pImgBLUE++ = *pImg1++;
+            *pImgGREEN++ = 0;
+            *pImgRED++ = 0;
+            pImgBLUE++;
+                        
+            //Componente GREEN
+            *pImgBLUE++ = 0;
+            *pImgGREEN++ = *pImg1++;
+            *pImgRED++ = 0;
+            pImgGREEN++;
             
-            for(col=0; col<Img1->width; col++){
-                //Componente azul
-                if(*pImgMod>0){
-                    (*pImgMod)--; //Decrementa en 1 el valor del dato en cada pasada del bucle
-                                  //Esto se repite para cada componente
-                }
-                pImgMod++;
-                
-                //Componente verde
-                if(*pImgMod>0){
-                    (*pImgMod)--;
-                }
-                pImgMod++;
-                
-                //Componente roja
-                if(*pImgMod>0){
-                    (*pImgMod)--;
-                }
-                pImgMod++;
-            }
-        }*/
-        
-        //Tambien se puede hacer con un solo bucle
-        unsigned char *pImgMod = (unsigned char*)(ImgMod->imageData);
-        for(row=0; row<Img1->imageSize;row++){
-            if(*pImgMod>0){
-                    (*pImgMod)--;
-                }
-                pImgMod++;
+            //Componente RED  
+            *pImgBLUE++ = 0;
+            *pImgGREEN++ = 0;
+            *pImgRED++ = *pImg1++;
+            pImgRED++;
+            
         }
-        
-        //Muestra la imagen sobre la que se aplica el fundido
-        cvShowImage("Negra", ImgMod);
-        cvWaitKey(20); 
     }
-    /**
-    // a visualization window is created with title 'image'
+    
+    //Se muestra la imagen origen
     cvNamedWindow(argv[1], CV_WINDOW_NORMAL);
     // img is shown in 'image' window
     cvShowImage(argv[1], Img1);
-    cvWaitKey(0);*/
+    cvWaitKey(0);
 
-    //Creamos la ventana para la imagen para el fundido negro
-    cvNamedWindow("Negra", CV_WINDOW_NORMAL);
-    /*cvShowImage("Negra", ImgMod);
-    cvWaitKey(0);*/
+    //Se muestra la componente azul
+    cvNamedWindow("Componente AZUL", CV_WINDOW_NORMAL);
+    cvShowImage("Componente AZUL", ImgBLUE);
+    cvWaitKey(0);
     
+    //Se muestra la componente verde
+    cvNamedWindow("Componente VERDE", CV_WINDOW_NORMAL);
+    cvShowImage("Componente VERDE", ImgGREEN);
+    cvWaitKey(0);
+    
+    //Se muestra la componente roja
+    cvNamedWindow("Componente ROJA", CV_WINDOW_NORMAL);
+    cvShowImage("Componente ROJA", ImgRED);
+    cvWaitKey(0);
+
     // memory release for img before exiting the application
-    /*cvReleaseImage(&Img1);
-    cvReleaseImage(&ImgMod);*/
-    
+    cvReleaseImage(&Img1);
+    cvReleaseImage(&ImgBLUE);
+    cvReleaseImage(&ImgGREEN);
+    cvReleaseImage(&ImgRED);
+
     // Self-explanatory
     cvDestroyWindow(argv[1]);
-    cvDestroyWindow("Negra");
+    cvDestroyWindow("Componente AZUL");
+    cvDestroyWindow("Componente VERDE");
+    cvDestroyWindow("Componente ROJA");
 
     return EXIT_SUCCESS;
 

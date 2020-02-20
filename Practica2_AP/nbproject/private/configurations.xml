@@ -25,10 +25,10 @@
       <runprofile version="9">
         <runcommandpicklist>
           <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
-          <runcommandpicklistitem>"${OUTPUT_PATH}" letrasRGB.png</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" fruits.jpg</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" letrasRGB.png</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" fruits.jpg</runcommand>
+        <runcommand>"${OUTPUT_PATH}" letrasRGB.png</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>
