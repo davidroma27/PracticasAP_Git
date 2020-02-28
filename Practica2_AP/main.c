@@ -48,31 +48,32 @@ int main(int argc, char** argv) {
     unsigned char *pImgGREEN;
     unsigned char *pImgRED;
     
-    for(row = 0; row < Img1->height; row++){
+    for (row = 0; row < Img1->height; row++) {
         //Casteamos para que tenga un valor de 256 bits y alineamos la imagen al principio de cada fila con widthStep
-        pImg1 = (unsigned char*) (Img1->imageData + (row*Img1->widthStep));
-        pImgBLUE = (unsigned char*) (ImgBLUE->imageData + (row*ImgBLUE->widthStep));
-        pImgGREEN = (unsigned char*) (ImgGREEN->imageData + (row*ImgGREEN->widthStep));
-        pImgRED = (unsigned char*) (ImgRED->imageData + (row*ImgRED->widthStep));
-        
-        for(col = 0; col < Img1->width; col++){
+        pImg1 = (unsigned char*) (Img1->imageData + (row * Img1->widthStep));
+        pImgBLUE = (unsigned char*) (ImgBLUE->imageData + (row * ImgBLUE->widthStep));
+        pImgGREEN = (unsigned char*) (ImgGREEN->imageData + (row * ImgGREEN->widthStep));
+        pImgRED = (unsigned char*) (ImgRED->imageData + (row * ImgRED->widthStep));
+
+        for (col = 0; col < Img1->width; col++) {
             //Componente BLUE
             *pImgBLUE++ = *pImg1++;
-            *pImgGREEN++ = 0;
-            *pImgRED++ = 0;
+            *pImgBLUE++ = 0;
+            *pImgBLUE++ = 0;
             pImgBLUE++;
-                        
-            //Componente GREEN
-            *pImgBLUE++ = 0;
-            *pImgGREEN++ = *pImg1++;
-            *pImgRED++ = 0;
-            pImgGREEN++;
             
-            //Componente RED  
-            *pImgBLUE++ = 0;
+            //Componente GREEN
             *pImgGREEN++ = 0;
+            *pImgGREEN++ = *pImg1++;
+            *pImgGREEN++ = 0;
+            pImgGREEN++;
+
+            //Componente RED  
+            *pImgRED++ = 0;
+            *pImgRED++ = 0;
             *pImgRED++ = *pImg1++;
             pImgRED++;
+            pImg1++; //Recorre las pos de memoria de la imagen original
             
         }
     }
