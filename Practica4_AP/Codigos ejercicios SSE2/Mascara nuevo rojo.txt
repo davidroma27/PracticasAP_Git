@@ -19,8 +19,8 @@
  */
 
 /**
- * Ejercicio 4: A partir de una imagen de 4 canales (abierta con la opción CV_LOAD_IMAGE_UNCHANGED), mostrar el
-canal alfa como una imagen en escala de grises.
+ * Ejercicio 5: A partir de una imagen de 4 canales (abierta con la opción CV_LOAD_IMAGE_UNCHANGED), mostrar
+ * una nueva imagen igual a la anterior pero en la cual todos los pixels tengan como valor rojo 0x80h
  * @param argc
  * @param argv
  * @return 
@@ -51,6 +51,8 @@ int main(int argc, char** argv) {
 */
     
     __m128i alfa = _mm_set1_epi32(0xFF000000); //Mascara alfa
+    __m128i noredMask = _mm_set1_epi32(0xFF00FFFF); //Mascara sin rojo
+    __m128i nuevoRojo = _mm_set1_epi32(0x00800000);
                 
     int row, col;
     //Recorremos la imagen origen y declaramos los punteros de imagen origen y destino
@@ -61,18 +63,11 @@ int main(int argc, char** argv) {
         
         for (col = 0; col < ImgOrigen->widthStep; col += 16) {
             __m128i origen = _mm_loadu_si128(pImgOrigen++); //Cargo en memoria la imagen a procesar
-            __m128i aorigen = _mm_and_si128(origen, alfa); //Se realiza el AND de la imagen y alfa
+            __m128i noRedOrigen = _mm_and_si128(origen, noredMask); //Se realiza el AND de la imagen y noredMask
             
-            __m128i arojo = _mm_srli_epi32(aorigen, 8); //Obtengo alfa para rojo
-            __m128i averde = _mm_srli_epi32(arojo, 8); //Obtengo alfa para verde
-            __m128i aazul = _mm_srli_epi32(averde, 8); //Obtengo alfa para azul
+            __m128i A = _mm_or_si128(noRedOrigen,nuevoRojo); //Obtengo alfa para rojo, verde y azul
             
-            __m128i A = _mm_or_si128(arojo, averde); //Obtengo alfa para rojo y verde
-            __m128i B = _mm_or_si128(A,aazul); //Obtengo alfa para rojo, verde y azul
-            
-            _mm_storeu_si128(pImgDestino++,B);
-            
-            
+            _mm_storeu_si128(pImgDestino++,A);
         }
     }
 
@@ -89,6 +84,4 @@ int main(int argc, char** argv) {
     cvDestroyWindow("Destino");
 
     return EXIT_SUCCESS;
-
 }
-
