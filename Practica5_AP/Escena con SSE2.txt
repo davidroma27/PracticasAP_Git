@@ -1,0 +1,69 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+
+int main(int argc, char** argv) {
+
+    if (argc != 3) {
+        printf("Usage: %s image_file_name\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    //CV_LOAD_IMAGE_COLOR = 1 forces the resultant IplImage to be colour.
+    //CV_LOAD_IMAGE_GRAYSCALE = 0 forces a greyscale IplImage.
+    //CV_LOAD_IMAGE_UNCHANGED = -1
+    IplImage* Personajes = cvLoadImage(argv[1], CV_LOAD_IMAGE_UNCHANGED);
+    IplImage* Fondo = cvLoadImage(argv[2], CV_LOAD_IMAGE_UNCHANGED);
+    IplImage* Result = cvCloneImage(Fondo);
+    
+    // Always check if the program can find a file
+    if (!Personajes && !Fondo) {
+        printf("Error: fichero %s no leido\n", argv[1]);
+        printf("Error: fichero %s no leido\n", argv[2]);
+        return EXIT_FAILURE;
+    }
+    
+    __m128i rPers, rFondo, rMasc, resultado, r7, r8, r9;
+    __m128i alfa = _mm_set1_epi32(0xFF000000);
+    __m128i ceros = _mm_set1_epi32(0x00000000);
+    
+    int row, col;
+    
+    for(row=0; row < 48; row++){
+        __m128i *pFondo = (__m128i*) (Fondo->imageData + (row*Fondo->widthStep));
+        //Los personajes se empiezan a recorrer en la fila 908 y columna 780*4(Bytes)
+        __m128i *pPersonajes = (__m128i*) (Personajes->imageData + ((row+908)*Personajes->widthStep)+(780*Personajes->nChannels));
+        __m128i *pResult = (__m128i*) (Result->imageData + (row*Result->widthStep));
+        
+        for(col=0; col < 56*4; col+=16){
+            rPers = _mm_loadu_si128(pPersonajes++);
+            rMasc = _mm_and_si128(rPers,alfa);
+            resultado = _mm_cmpeq_epi32(rMasc,ceros);
+            rFondo = _mm_loadu_si128(pFondo++);
+            r7 = _mm_andnot_si128(resultado, rPers);
+            r8 = _mm_and_si128(resultado, rFondo);
+            r9 = _mm_or_si128(r7, r8);
+            _mm_storeu_si128(pResult++, r9);
+        }
+    }
+
+    // a visualization window is created with title 'image'
+    cvNamedWindow(argv[2], CV_WINDOW_NORMAL);
+    // img is shown in 'image' window
+    cvShowImage(argv[2], Result);
+    cvWaitKey(0);
+
+
+    // memory release for img before exiting the application
+    cvReleaseImage(&Personajes);
+    cvReleaseImage(&Fondo);
+
+    // Self-explanatory
+    cvDestroyWindow(argv[1]);
+    cvDestroyWindow(argv[2]);
+    
+    return EXIT_SUCCESS;
+
+}
