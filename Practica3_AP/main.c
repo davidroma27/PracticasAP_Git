@@ -49,18 +49,18 @@ int main(int argc, char** argv) {
     __m128i *pImgC;
     __m128i UNOS = _mm_set1_epi8 (1);
     unsigned int step;
-    
+                
     //Para cada fila recorre las columnas de cada imagen
     //La variable step cuenta los ciclos que se hacen para decrementar los valores
     //Se establece en 256 porque es el tamaño que tiene cada componente de la imagen
     for(step=0; step<256; step++){ 
-                
+
         for(row=0; row<Img1->height; row++){
-            
+    
             pImg1=(__m128i*)(Img1 ->imageData + (row*Img1->widthStep));
             pImgC =(__m128i*)(ImgC ->imageData + (row*ImgC->widthStep));
             for(col=0; col<Img1->widthStep; col+=16){
-                
+
                 __m128i A = _mm_loadu_si128 (pImg1); // P no alineado a 16 Bytes
                 __m128i B = _mm_loadu_si128 (pImgC);
                 __m128i C = _mm_adds_epu8 (B, UNOS);
@@ -69,21 +69,21 @@ int main(int argc, char** argv) {
                 pImg1++;
                 pImgC++;
                  
-            }
         }
-        
+    }
+    
         //Muestra la imagen sobre la que se aplica el fundido
         cvShowImage("Blanca", ImgC);
         cvWaitKey(10);
     }
-    
+
     /**
     // a visualization window is created with title 'image'
     cvNamedWindow(argv[1], CV_WINDOW_NORMAL);
     // img is shown in 'image' window
     cvShowImage(argv[1], Img1);
     cvWaitKey(0);*/
-
+    
     //Creamos la ventana para la imagen para el fundido negro
     cvNamedWindow("Blanca", CV_WINDOW_NORMAL);
     /*cvShowImage("Negra", ImgMod);
