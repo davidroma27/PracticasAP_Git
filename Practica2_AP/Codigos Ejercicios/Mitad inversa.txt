@@ -1,0 +1,96 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+
+int main(int argc, char** argv) {
+
+    if (argc != 2) {
+        printf("Usage: %s image_file_name\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    //CV_LOAD_IMAGE_COLOR = 1 forces the resultant IplImage to be colour.
+    //CV_LOAD_IMAGE_GRAYSCALE = 0 forces a greyscale IplImage.
+    //CV_LOAD_IMAGE_UNCHANGED = -1
+    IplImage* Img1 = cvLoadImage(argv[1], CV_LOAD_IMAGE_COLOR);
+    
+    // Always check if the program can find a file
+    if (!Img1) {
+        printf("Error: fichero %s no leido\n", argv[1]);
+        return EXIT_FAILURE;
+    }
+
+    //Crea una imagen con las caracteristicas de la imagen de entrada
+    IplImage* ImgInversa= cvCreateImage(cvSize(Img1->width,Img1->height) , Img1->depth, Img1->nChannels);
+    
+    if (!ImgInversa) {
+        printf("Error: Creando nueva imagen\n");
+        return EXIT_FAILURE;
+    }
+    
+    //Creamos el bucle que recorre la imagen
+    int row, col;
+    unsigned char *pImg1;
+    unsigned char *pImgInversa;
+    int mitad = Img1->height/2;
+                
+    /**
+     * Lee los pixeles de la PRIMERA MITAD de la imagen ORIGEN y los copia en la
+     * SEGUNDA MITAD de la imagen DESTINO.
+     */
+    for(row=0; row<mitad; row++){
+        //Img1->imageData + (row): Indicamos que se lean los pixeles de la primera mitad de Img1
+        pImg1=(unsigned char *) (Img1 ->imageData + row * Img1->widthStep);
+        //ImgInversa ->imageData + (row+mitad): Indicamos que se copien los pixeles de Img1
+        //a partir de la segunda mitad de ImgInversa.
+        pImgInversa =(unsigned char *) (ImgInversa ->imageData + (row+mitad) * ImgInversa->widthStep);
+
+        /**
+         * El siguiente bucle recorre cada pixel de Img1 y los copia en
+         * el puntero de ImgInversa para las 3 componentes y al mismo tiempo los incrementa
+         * para recorrer toda la mitad
+         */
+        for(col=0; col<Img1->width; col++){
+            *pImgInversa++ = *pImg1++;
+            *pImgInversa++ = *pImg1++;
+            *pImgInversa++ = *pImg1++;
+        }
+    }
+    
+    /**
+     * En este bucle se realiza lo mismo pero para la segunda mitad de Img1
+     * (Img1 ->imageData + (row+mitad)). Esta mitad es recorrida y se almacena en
+     * la primera mitad de ImgInversa
+     */
+    for(row=0; row<mitad; row++){
+        pImg1=(unsigned char *) (Img1 ->imageData + (row+mitad) * Img1->widthStep);
+        pImgInversa =(unsigned char *) (ImgInversa ->imageData + (row) * ImgInversa->widthStep);
+
+        for(col=0; col<Img1->width; col++){
+            *pImgInversa++ = *pImg1++;
+            *pImgInversa++ = *pImg1++;
+            *pImgInversa++ = *pImg1++;
+        }
+    }
+    
+    cvNamedWindow("Original", CV_WINDOW_NORMAL);
+    cvShowImage("Original", Img1);
+    cvWaitKey(0);
+
+    cvNamedWindow("Inversa", CV_WINDOW_NORMAL);
+    cvShowImage("Inversa", ImgInversa);
+    cvWaitKey(0);
+    
+    // memory release for img before exiting the application
+    cvReleaseImage(&Img1);
+    cvReleaseImage(&ImgInversa);
+    
+    // Self-explanatory
+    cvDestroyWindow("Original");
+    cvDestroyWindow("Inversa");
+
+    return EXIT_SUCCESS;
+
+}
