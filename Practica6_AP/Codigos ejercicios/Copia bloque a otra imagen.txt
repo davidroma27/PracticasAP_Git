@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+
+int main(int argc, char** argv) {
+
+    if (argc != 3) {
+        printf("Usage: %s image_file_name\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    //CV_LOAD_IMAGE_COLOR = 1 forces the resultant IplImage to be colour.
+    //CV_LOAD_IMAGE_GRAYSCALE = 0 forces a greyscale IplImage.
+    //CV_LOAD_IMAGE_UNCHANGED = -1
+    IplImage* aves = cvLoadImage(argv[1], CV_LOAD_IMAGE_UNCHANGED);
+    IplImage* res = cvLoadImage(argv[2], CV_LOAD_IMAGE_UNCHANGED);
+    
+    // Always check if the program can find a file
+    if (!aves) {
+        printf("Error: fichero %s no leido\n", argv[1]);
+        return EXIT_FAILURE;
+    }
+    
+    if (!res) {
+        printf("Error: fichero %s no leido\n", argv[2]);
+        return EXIT_FAILURE;
+    }
+    
+    /**
+     * Hacemos un bucle para recorrer aves y coger los primeros 256 pixeles de ancho
+     * y alto.
+     */
+    int row, col;
+    unsigned char *pAves;
+    unsigned char *pRes;
+    
+    for(row=0; row<256; row++){
+        pAves = (unsigned char*)(aves->imageData + (row*aves->widthStep));
+        pRes = (unsigned char*)(res->imageData + (row*res->widthStep));
+        for(col=0; col<256; col++){
+            *pRes++ = *pAves++;
+            *pRes++ = *pAves++;
+            *pRes++ = *pAves++;
+        }
+    }
+
+    // a visualization window is created with title 'image'
+    cvNamedWindow(argv[2], CV_WINDOW_NORMAL);
+    // img is shown in 'image' window
+    cvShowImage(argv[2], res);
+    cvWaitKey(0);
+
+    // memory release for img before exiting the application
+    cvReleaseImage(&res);
+    
+    // Self-explanatory
+    cvDestroyWindow(argv[2]);
+    
+    return EXIT_SUCCESS;
+
+}

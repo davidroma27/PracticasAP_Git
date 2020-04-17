@@ -1,0 +1,83 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+
+/**
+ * Definimos el alto y el ancho del bloque o "trozo de imagen" que queremos copiar
+ */
+#define ALTO 64
+#define ANCHO 64
+
+/**
+ * FUNCION COPIAR BLOQUE:
+ * Se pasa como parametro el punto (i,j) desde donde empezará a copiar pixeles en la imgOrigen.
+ * Se pasa como parametro el punto (k,l) desde donde empezará a pegar en la imgDestino el bloque copiado.
+ */
+void copiarBloque(int i, int j, IplImage* imgOrigen, int k, int l, IplImage* imgDestino){
+    int row, col;
+    unsigned char *pAves;
+    unsigned char *pRes;
+
+    //El primer bucle recorre todas las filas hasta el alto que hemos indicado (ALTO del bloque)
+    for(row=0; row<ALTO; row++){
+        pAves = (unsigned char*) imgOrigen->imageData + ((row+i)*imgOrigen->widthStep) + (j*imgOrigen->nChannels);
+        pRes = (unsigned char*) imgDestino->imageData + ((row+k)*imgDestino->widthStep) + (l*imgDestino->nChannels);
+
+        //EL segundo bucle recorre todas las columnas hasta el ancho que hemos indicado (ANCHO del bloque)
+        for(col=0; col<ANCHO; col++){
+            //Se copian todos los pixeles de ese area del bloque y se almacenan en los punteros de la imgDestino
+            *pRes++ = *pAves++;
+            *pRes++ = *pAves++;
+            *pRes++ = *pAves++;
+        }
+    }
+}
+
+int main(int argc, char** argv) {
+
+    if (argc != 3) {
+        printf("Usage: %s image_file_name\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    //CV_LOAD_IMAGE_COLOR = 1 forces the resultant IplImage to be colour.
+    //CV_LOAD_IMAGE_GRAYSCALE = 0 forces a greyscale IplImage.
+    //CV_LOAD_IMAGE_UNCHANGED = -1
+    IplImage* aves = cvLoadImage(argv[1], CV_LOAD_IMAGE_UNCHANGED);
+    IplImage* res = cvLoadImage(argv[2], CV_LOAD_IMAGE_UNCHANGED);
+    
+    // Always check if the program can find a file
+    if (!aves) {
+        printf("Error: fichero %s no leido\n", argv[1]);
+        return EXIT_FAILURE;
+    }
+    
+    if (!res) {
+        printf("Error: fichero %s no leido\n", argv[2]);
+        return EXIT_FAILURE;
+    }
+    
+    // a visualization window is created with title 'image'
+    cvNamedWindow(argv[2], CV_WINDOW_NORMAL);
+    
+    int row, col;
+    for(row=0; row<aves->height; row+=ALTO){
+        for(col=0; col<aves->width; col+=ANCHO){
+            copiarBloque(row,col,aves,row,col,res);
+            cvShowImage(argv[2], res); 
+            // img is shown in 'image' window
+            cvWaitKey(50);
+        }
+    }
+    
+    // memory release for img before exiting the application
+    cvReleaseImage(&res);
+    
+    // Self-explanatory
+    cvDestroyWindow(argv[2]);
+    
+    return EXIT_SUCCESS;
+
+}
