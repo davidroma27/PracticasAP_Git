@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+#include <emmintrin.h>
+#include <pthread.h> /* POSIX Threads */
+#define NTHREADS 4
+#define ALTO 16
+#define ANCHO 16
+
+// Definimos las variables para cada imagen de forma global
+IplImage* ImgOrigen;
+IplImage* ImgBloques;
+IplImage* ImgMosaico;
+
+
+int compararSSE2Optimizado(int i, int j, IplImage * ImgOrigen, int k, int l, IplImage * ImgBloques) {
+    int row, col;
+    __m128i A, B, C, D, E, suma;
+    int valor=0;
+    suma = _mm_set1_epi8(0);
+    
+    for (row = 0; row < ALTO; row++) {
+        __m128i *pFrutas = (__m128i*) (ImgOrigen->imageData + (row + i) * ImgOrigen->widthStep + j * ImgOrigen->nChannels);
+        __m128i *pAves = (__m128i*) (ImgBloques->imageData + (row + k) * ImgBloques->widthStep + l * ImgBloques->nChannels);
+
+        for (col = 0; col < ANCHO * ImgBloques->nChannels; col+=16) {
+            A = _mm_load_si128(pFrutas++); //Cargamos las 2 imagenes
+            B = _mm_load_si128(pAves++);
+            C = _mm_sad_epu8(A, B); //realiza las sumas de 8 bits
+            suma = _mm_adds_epu8 (C, suma); //suma la nueva diferencia
+        }
+    }
+        //Sacamos fuera del bucle las operaciones para un codigo mas eficiente
+        D = _mm_srli_si128(suma, 8); //desplaza la operación de suma
+        E = _mm_add_epi32(suma, D); //realiza la suma de suma y D
+        return _mm_cvtsi128_si32(E); //Devuelve el menor valor de la suma
+}
+
+void copiarBloqueSSE2(int i, int j, IplImage * ImgOrigen, int k, int l, IplImage * ImgBloques) {
+
+    int row, col;
+
+    for (row = 0; row < ALTO; row++) {
+        __m128i *pFrutas = (__m128i*) (ImgOrigen->imageData + (row + i) * ImgOrigen->widthStep + j * ImgOrigen->nChannels);
+        __m128i *pAves = (__m128i*) (ImgBloques->imageData + (row + k) * ImgBloques->widthStep + l * ImgBloques->nChannels);
+        
+        for (col = 0; col < (ANCHO * ImgBloques->nChannels); col+=ANCHO) {
+            __m128i A = _mm_load_si128(pFrutas++);
+            _mm_store_si128(pAves++, A);
+        }
+    }
+}
+
+void mosaico_thread(void *ptr) {
+    //ptr apunta a un entero que indica el mutiplo de la fila a sustituir
+    int parte = *((int *)ptr);
+    int filasParte = ImgOrigen->height/NTHREADS; //filas por parte
+    int dif, fila1, col1, fila2, col2;
+
+
+    for (fila1 = parte * filasParte; fila1 < (parte + 1)*filasParte; fila1 += ALTO) {
+        for (col1 = 0; col1 < ImgOrigen->width; col1 += ANCHO) {
+
+            int max = INT_MAX;
+            int filaMax, colMax = 0;
+
+            for (fila2 = 0; fila2 < ImgBloques->height; fila2 += ALTO) {
+                for (col2 = 0; col2 < ImgBloques->width; col2 += ANCHO) {
+
+                    dif = compararSSE2Optimizado(fila1, col1, ImgBloques, fila2, col2, ImgOrigen);
+                    if (dif < max) {
+                        max = dif;
+                        filaMax = fila2;
+                        colMax = col2;
+                    }
+                }
+            }
+            copiarBloqueSSE2(filaMax, colMax, ImgOrigen, fila1, col1, ImgMosaico);
+        }
+    }
+}
+
+int main(int argc, char *argv[]) {
+    ImgOrigen = cvLoadImage(argv[1], CV_LOAD_IMAGE_UNCHANGED);
+    ImgBloques = cvLoadImage(argv[2], CV_LOAD_IMAGE_UNCHANGED);
+    ImgMosaico = cvCreateImage(cvSize(ImgOrigen->width, ImgOrigen->height), 8, 3);
+    
+    pthread_t threads[NTHREADS];
+    int parte[NTHREADS];
+    int i;
+    
+    cvNamedWindow(argv[1], CV_WINDOW_NORMAL);
+    struct timespec start, finish;
+    float elapsed;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    for (i = 0; i < NTHREADS; i++) {
+        parte[i] = i;
+        pthread_create(&threads[i], NULL, (void *) &mosaico_thread, (void *) &parte[i]);
+    }
+    
+    for (i = 0; i < NTHREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &finish);
+    elapsed = (finish.tv_sec - start.tv_sec);
+    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+    printf("Tiempo transcurrido: %f\n", elapsed);
+
+
+    cvShowImage(argv[1], ImgMosaico);
+    cvWaitKey(0);
+    cvDestroyWindow(argv[1]);
+    cvReleaseImage(&ImgMosaico);
+    
+    return EXIT_SUCCESS;
+}
