@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+
+#include <emmintrin.h> //Librerias para la tecnología SSE2
+
+int main(int argc, char** argv) {
+
+    if (argc != 2) {
+        printf("Usage: %s image_file_name\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    //CV_LOAD_IMAGE_COLOR = 1 forces the resultant IplImage to be colour.
+    //CV_LOAD_IMAGE_GRAYSCALE = 0 forces a greyscale IplImage.
+    //CV_LOAD_IMAGE_UNCHANGED = -1
+    IplImage* imagenInicial = cvLoadImage(argv[1], CV_LOAD_IMAGE_COLOR);
+
+    //Convertimos la imagen inicial a IPL_DEPTH_32F creando una nueva imagen
+    IplImage* imagenInicialFloat = cvCreateImage(cvSize(imagenInicial->width,
+            imagenInicial->height), IPL_DEPTH_32F, imagenInicial->nChannels);
+
+    IplImage* imagenTransicionFloat = cvCreateImage(cvSize(imagenInicial->width,
+            imagenInicial->height), IPL_DEPTH_32F, imagenInicial->nChannels);
+
+    //Se aplica la funcion cvConverScale para realizar el escalado a float
+    cvConvertScale(imagenInicial, imagenInicialFloat, 1.0 / 255.0, 0);
+    cvConvertScale(imagenInicial, imagenTransicionFloat, 1.0 / 255.0, 0);
+
+
+    // Always check if the program can find a file
+    if (!imagenInicial) {
+        printf("Error: fichero %s no leido\n", argv[1]);
+        return EXIT_FAILURE;
+    }
+
+    if (!imagenInicialFloat) {
+        printf("Error: Creando nueva imagen\n");
+        return EXIT_FAILURE;
+    }
+
+    int iteraciones = 25;
+    int iteracion;
+
+    //Bucle para fundir a negro la imagenInicialFloat
+    for (iteracion == 0; iteracion <= iteraciones; iteracion++) {
+        float alfa = ((float) iteraciones - iteracion) / (float) (iteraciones);
+        __m128 alfaSSE = _mm_set_ps1(alfa);
+        __m128 ccInicial, ccTransicion;
+
+        int fila, cc;
+        for (fila = 0; fila < imagenInicialFloat->height; fila++) {
+            __m128 *pImagenInicialFloat = (__m128 *) (imagenInicialFloat->imageData
+                    + fila * imagenInicialFloat->widthStep);
+            __m128 *pImagenTransicionFloat = (__m128 *) (imagenTransicionFloat->imageData
+                    + fila * imagenTransicionFloat->widthStep);
+
+            for (cc = 0; cc < imagenInicialFloat->width * imagenInicialFloat->nChannels; cc = cc + 4) {
+                ccInicial = *pImagenInicialFloat++;
+                ccTransicion = _mm_mul_ps(ccInicial, alfaSSE);
+                *pImagenTransicionFloat++ = ccTransicion;
+            }
+        }
+        
+        cvNamedWindow("imagenTransicionFloat", CV_WINDOW_NORMAL);
+        cvShowImage("imagenTransicionFloat", imagenTransicionFloat);
+        cvWaitKey(50);
+    }
+
+/*
+    //Mostrar imagen inicial
+    cvNamedWindow("Inicial", CV_WINDOW_NORMAL);
+    cvShowImage("Inicial", imagenInicial);
+    cvWaitKey(0);
+    cvDestroyWindow("Inicial");
+
+    //Mostrar imagen float
+    cvNamedWindow("Float", CV_WINDOW_NORMAL);
+    cvShowImage("Float", imagenInicialFloat);
+    cvWaitKey(0);
+    cvDestroyWindow("Float");
+*/
+
+    return EXIT_SUCCESS;
+
+}
